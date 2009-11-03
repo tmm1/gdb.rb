@@ -1,0 +1,229 @@
+gdb7 hooks for MRI
+  (c) 2009 Aman Gupta (tmm1)
+
+=== Usage
+
+  $ ps aux | grep deploy.rb
+  13074  0.0  0.7  90164 31720 ?        R    Sep23   2:21 /usr/bin/ruby /usr/bin/god -c deploy.rb
+
+  $ sudo gdb.rb 13074
+  GNU gdb (GDB) 7.0
+  Reading symbols from /usr/bin/ruby...done.
+  Attaching to program: /usr/bin/ruby, process 13074
+  0x00007fa8b9cb3c93 in select () from /lib/libc.so.6
+
+  (gdb) ruby threads list
+  0x1589000 main      thread  THREAD_STOPPED   WAIT_JOIN(0x19ef400)           4417 bytes
+  0x19ef400           thread  THREAD_STOPPED   WAIT_TIME(57.10)               6267 bytes
+  0x19e3400           thread  THREAD_STOPPED   WAIT_FD(5)                    10405 bytes
+  0x19e0000           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19e0400           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19e0800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19e0c00           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19de000           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19de400           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19de800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19dec00           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19dc000           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19dc400           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19dc800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x19dcc00           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x2266800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
+  0x1d63000      curr thread  THREAD_RUNNABLE  WAIT_NONE                 
+
+  (gdb) ruby threads
+  0x1589000 main      thread  THREAD_STOPPED   WAIT_JOIN(0x19ef400)           4417 bytes
+         node_call      join in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:626
+         node_call      start in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:633
+         node_call      at_exit in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:666
+         node_fcall     (unknown) in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/cli/run.rb:87
+
+  0x19ef400           thread  THREAD_STOPPED   WAIT_TIME(45.25)               6267 bytes
+         node_fcall     sleep in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:622
+         node_fcall     start in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:621
+         node_fcall     loop in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:621
+         node_call      start in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:620
+         node_call      initialize in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:620
+         node_call      new in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:620
+         node_call      start in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:633
+         node_call      at_exit in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god.rb:666
+         node_fcall     (unknown) in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/cli/run.rb:87
+
+  0x19e3400           thread  THREAD_STOPPED   WAIT_FD(5)                    10405 bytes
+         node_call      accept in /usr/lib/ruby/1.8/drb/unix.rb:98
+         node_call      accept in /usr/lib/ruby/1.8/drb/drb.rb:1581
+         node_vcall     main_loop in /usr/lib/ruby/1.8/drb/drb.rb:1430
+         node_call      run in /usr/lib/ruby/1.8/drb/drb.rb:1427
+         node_call      start in /usr/lib/ruby/1.8/drb/drb.rb:1427
+         node_vcall     run in /usr/lib/ruby/1.8/drb/drb.rb:1347
+         node_call      initialize in /usr/lib/ruby/1.8/drb/drb.rb:1627
+
+  (gdb) ruby threads trace
+  -- Tracing thread context switches.
+  0x19ef400           thread  THREAD_RUNNABLE  WAIT_NONE                      6267 bytes
+  0x1d63000           thread  THREAD_RUNNABLE  WAIT_NONE                      8623 bytes
+  0x19e3400           thread  THREAD_RUNNABLE  WAIT_NONE                     10405 bytes
+  0x3001c00           thread  THREAD_RUNNABLE  WAIT_NONE                      9507 bytes
+  0x19e3400           thread  THREAD_RUNNABLE  WAIT_NONE                      9507 bytes
+  0x3001c00           thread  THREAD_RUNNABLE  WAIT_NONE                     15059 bytes
+  0x1d63000           thread  THREAD_RUNNABLE  WAIT_NONE                      8623 bytes
+  0x3001c00           thread  THREAD_RUNNABLE  WAIT_NONE                     15059 bytes
+
+  (gdb) ruby trace 25
+  -- Tracing the next 25 ruby method calls.
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  watching_pid? in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:58
+  [] in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  default in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  watching_pid? in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:58
+  [] in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  default in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  watching_pid? in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:58
+  [] in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  default in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+  watching_pid? in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:58
+  [] in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  default in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:59
+  handle_events in /usr/lib/ruby/gems/1.8/gems/god-0.7.13/bin/../lib/god/event_handler.rb:66
+
+  (gdb) ruby objects
+
+    HEAPS            8
+    SLOTS      1686252
+    LIVE        893327 (52.98%)
+    FREE        792925 (47.02%)
+
+    bignum           2 (0.00%)
+    file            51 (0.01%)
+    float           77 (0.01%)
+    module         781 (0.09%)
+    varmap        1354 (0.15%)
+    scope         1641 (0.18%)
+    match         1676 (0.19%)
+    iclass        1744 (0.20%)
+    regexp        2255 (0.25%)
+    data          3539 (0.40%)
+    class         3680 (0.41%)
+    hash          6196 (0.69%)
+    object        8785 (0.98%)
+    array        13850 (1.55%)
+    string      105350 (11.79%)
+    node        742346 (83.10%)
+
+  (gdb) ruby objects classes
+         1 YAML::Syck::Resolver
+         1 YAML::Syck::Resolver
+         1 SystemStackError
+         1 Object
+         1 Object
+         1 NoMemoryError
+         1 fatal
+         1 Object
+         1 Gem::SourceIndex
+         1 Gem::GemPathSearcher
+         1 Gem::ConfigFile
+         1 God::Logger
+         1 God::SimpleLogger
+         1 God::CLI::Run
+         1 DRb::DRbServer::InvokeMethod
+         1 DRb::DRbServer
+         1 DRb::DRbIdConv
+         1 God::Registry
+         1 OptionParser::Switch::OptionalArgument
+         1 OptionParser
+         1 God::Socket
+         1 God::Contacts::Email
+         2 Date::Infinity
+         2 DRb::DRbMessage
+         2 DRb::DRbBadScheme
+         2 DRb::DRbUNIXSocket
+         3 OptionParser::List
+         6 IOError
+         6 Errno::ESRCH
+         6 OptionParser::Switch::RequiredArgument
+         6 Net::InternetMessageIO
+         7 God::System::SlashProcPoller
+         7 God::System::Process
+         7 God::DriverOperation
+         7 Net::SMTP
+         8 StandardError
+        10 OptionParser::Switch::NoArgument
+        13 God::Conditions::Flapping
+        13 God::Conditions::ProcessExits
+        13 God::Behaviors::CleanPidFile
+        13 God::Process
+        13 God::Watch
+        13 God::Driver
+        13 God::DriverEventQueue
+        19 God::DriverEvent
+        38 Process::Status
+        39 God::Conditions::ProcessRunning
+        50 Range
+        63 Gem::Specification
+        65 God::Metric
+        81 Gem::Dependency
+       174 Gem::Version::Part
+       209 Gem::Requirement
+       219 Gem::Version
+
+  (gdb) ruby objects strings 
+         70 u'bin'
+         73 u' INFO'
+         74 u'--main'
+         74 u'I'
+         75 u'..'
+         78 u'ruby'
+         80 u'::'
+         92 u'1.3.2'
+        100 u'README.rdoc'
+        102 u' '
+        108 u'Rakefile'
+        110 u'README'
+        114 u'\r\n'
+        127 u'>='
+        140 u'lib'
+        158 u'0'
+        294 u'\n'
+        619 u''
+
+      30503 unique strings
+    3187435 bytes
+
+  (gdb) ruby objects nodes 
+      8156 NODE_EVSTR
+      8966 NODE_COLON2
+     10020 NODE_DVAR
+     11493 NODE_AND
+     13157 NODE_FCALL
+     14493 NODE_VCALL
+     15148 NODE_ARGS
+     15180 NODE_CONST
+     15445 NODE_SCOPE
+     16582 NODE_IF
+     21594 NODE_LASGN
+     22084 NODE_METHOD
+     26633 NODE_STR
+     37819 NODE_LIT
+     64325 NODE_LVAR
+     64470 NODE_NEWLINE
+     69436 NODE_BLOCK
+     85825 NODE_CALL
+    126739 NODE_ARRAY
+
+=== TODO
+
+  `ruby where` for the current stack trace
+  `ruby print` to inspect ruby variables
+  `ruby breakpoint` to breakpoint on ruby methods
+  `ruby irb` for a simple interactive shell
