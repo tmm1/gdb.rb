@@ -27,7 +27,7 @@ if `uname -a 2>&1` !~ /x86_64/
   exit(1)
 end
 
-unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h')
+unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or have_header('python2.4/Python.h')
   STDERR.puts "\n\n"
   STDERR.puts "***************************************************************************************"
   STDERR.puts "***************** Python required (apt-get install python2.5-dev) =( ******************"
