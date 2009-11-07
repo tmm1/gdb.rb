@@ -35,9 +35,7 @@ class RubyThreads (gdb.Command):
     self.curr = None
     self.main = gdb.eval('rb_main_thread')
 
-    self.height = gdb.parameter('height') or 26
     self.unwind = gdb.parameter('unwindonsignal')
-    gdb.execute('set height 0')
     gdb.execute('set unwindonsignal on')
 
     gdb.execute('watch rb_curr_thread')
@@ -57,7 +55,6 @@ class RubyThreads (gdb.Command):
 
     gdb.execute('delete %d' % num)
     gdb.execute('set unwindonsignal %s' % ('on' if self.unwind else 'off'))
-    gdb.execute('set height %d' % self.height)
 
   def show (self):
     self.main = gdb.eval('rb_main_thread')
@@ -166,9 +163,7 @@ class RubyTrace (gdb.Command):
     gdb.breakpoints()[-1].silent = True
     self.func = gdb.eval('$func')
 
-    self.height = gdb.parameter('height') or 26
     self.unwind = gdb.parameter('unwindonsignal')
-    gdb.execute('set height 0')
     gdb.execute('set unwindonsignal on')
 
   def teardown (self):
@@ -185,7 +180,6 @@ class RubyTrace (gdb.Command):
       gdb.execute(c)
 
     gdb.execute('set unwindonsignal %s' % ('on' if self.unwind else 'off'))
-    gdb.execute('set height %d' % self.height)
 
   def invoke (self, arg, from_tty):
     self.dont_repeat()
@@ -222,9 +216,6 @@ class RubyObjects (gdb.Command):
     super (RubyObjects, self).__init__ ("ruby objects", gdb.COMMAND_NONE)
 
   def invoke (self, arg, from_tty):
-    self.height = gdb.parameter('height') or 26
-    gdb.execute('set height 0')
-
     if arg == 'classes':
       self.print_classes()
     elif arg == 'nodes':
@@ -233,8 +224,6 @@ class RubyObjects (gdb.Command):
       self.print_strings()
     else:
       self.print_stats()
-
-    gdb.execute('set height %d' % self.height)
 
   def complete (self, text, word):
     if text == word:
@@ -402,3 +391,17 @@ for t in types:
     gdb.execute("macro define %s %s" % (name, val))
     RubyObjects.TYPES[int(val,16)] = name[2:].lower()
 
+settings = """
+  set height 0
+  set width 0
+  set print pretty
+
+  set history save on
+  set history filename ~/.gdbrb_history
+
+  set debug-file-directory /usr/lib/debug
+""".split("\n")
+
+for s in settings:
+  if len(s.strip()) > 0:
+    gdb.execute(s)
