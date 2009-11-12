@@ -27,6 +27,7 @@ if `uname -a 2>&1` !~ /x86_64/
   exit(1)
 end
 
+dir_config('python')
 unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or have_header('python2.4/Python.h')
   STDERR.puts "\n\n"
   STDERR.puts "***************************************************************************************"
@@ -62,7 +63,7 @@ Dir.chdir('src') do
   end
 
   Dir.chdir(dir) do
-    sys("./configure --prefix=#{CWD}/dst/")
+    sys("./configure --prefix=#{CWD}/dst/ --with-python=#{with_config('python-dir') || 'yes'}")
     sys("make")
     sys("make install")
   end
