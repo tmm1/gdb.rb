@@ -27,7 +27,7 @@ class RubyThreads (gdb.Command):
     if re.match('trace', arg):
       self.trace()
     else:
-      self.type = arg if arg == 'list' else None
+      self.type = arg == 'list' and arg or None
       self.show()
 
   def trace (self):
@@ -54,7 +54,7 @@ class RubyThreads (gdb.Command):
       None
 
     gdb.execute('delete %d' % num)
-    gdb.execute('set unwindonsignal %s' % ('on' if self.unwind else 'off'))
+    gdb.execute('set unwindonsignal %s' % (self.unwind and 'on' or 'off'))
 
   def show (self):
     self.main = gdb.eval('rb_main_thread')
@@ -82,8 +82,8 @@ class RubyThreads (gdb.Command):
   def print_thread (self, th):
     if self.type != 'list': print
     print th,
-    print 'main' if th == self.main else '    ',
-    print 'curr' if th == self.curr else '    ',
+    print th == self.main and 'main' or '    ',
+    print th == self.curr and 'curr' or '    ',
     print "thread", " %s" % str(th['status']).ljust(16), "%s" % self.wait_state(th), "   ",
     if th != self.curr:
       print "% 8d bytes" % th['stk_len']
@@ -179,11 +179,11 @@ class RubyTrace (gdb.Command):
     for c in commands:
       gdb.execute(c)
 
-    gdb.execute('set unwindonsignal %s' % ('on' if self.unwind else 'off'))
+    gdb.execute('set unwindonsignal %s' % (self.unwind and 'on' or 'off'))
 
   def invoke (self, arg, from_tty):
     self.dont_repeat()
-    num = int(arg) if arg else 100
+    num = arg and int(arg) or 100
     self.setup()
 
     try:
@@ -199,7 +199,7 @@ class RubyTrace (gdb.Command):
         file = node['nd_file'].string()
         line = gdb.eval('nd_line(%s)' % node)
         method = gdb.eval('rb_id2name($rcx)')
-        method = method.string() if method > 0 else '(unknown)'
+        method = method > 0 and method.string() or '(unknown)'
 
         print "%s in %s:%d" % (method,file,line)
 
