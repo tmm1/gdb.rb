@@ -1,6 +1,11 @@
 gdb7 hooks for MRI
   (c) 2009 Aman Gupta (tmm1)
 
+=== Requirements
+
+  gdb.rb currently requires x86_64 linux, and a REE 1.8 binary. Support for other MRI builds and
+  platforms is in the works.
+
 === Usage
 
   $ ps aux | grep deploy.rb
@@ -221,9 +226,24 @@ gdb7 hooks for MRI
      85825 NODE_CALL
     126739 NODE_ARRAY
 
+
 === TODO
 
   `ruby where` for the current stack trace
   `ruby print` to inspect ruby variables
   `ruby breakpoint` to breakpoint on ruby methods
   `ruby irb` for a simple interactive shell
+
+
+=== Credits
+
+  Tom Tromey for his work on gdb python support (gdb-eval.patch, gdb-breakpoints.patch) and help
+  tracking down some memory leaks (gdb-leak.patch)
+
+  Joe Damato for writing parts of ruby-gdb.py and various gdb hacks to make gdb.rb possible.
+
+
+=== License
+
+  Available under the Ruby License.
+
