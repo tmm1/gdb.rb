@@ -1,5 +1,6 @@
 import re
 import gdb
+import time
 
 class ZeroDict(dict):
   def __getitem__(self, i):
@@ -59,7 +60,7 @@ class RubyThreads (gdb.Command):
   def show (self):
     self.main = gdb.eval('rb_main_thread')
     self.curr = gdb.eval('rb_curr_thread')
-    self.now = gdb.eval('timeofday()')
+    self.now = time.time()
 
     try:
       gdb.eval('rb_thread_start_2')
@@ -132,7 +133,10 @@ class RubyThreads (gdb.Command):
       type = gdb.eval('(enum node_type) nd_type(%s)' % node)
 
       if frame['last_func']:
-        method = gdb.eval('rb_id2name(%s)' % frame['last_func']).string()
+        try:
+          method = gdb.eval('rb_id2name(%s)' % frame['last_func']).string()
+        except:
+          method = '(unknown)'
       else:
         method = '(unknown)'
 
