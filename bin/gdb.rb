@@ -2,7 +2,7 @@
 require 'rbconfig'
 
 if ARGV.size == 1 and ARGV[0] =~ /^\d+$/
-  ARGV.unshift "#{Config::CONFIG['bindir']}/ruby"
+  ARGV.unshift "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
 elsif ARGV.size == 2 and File.exist?(ARGV[0]) and ARGV[1] =~ /^\d+$/
 else
   puts "Usage:"
