@@ -324,10 +324,33 @@ class RubyObjects (gdb.Command):
   def obj_type (self, type):
     return RubyObjects.TYPES.get(type, 'unknown')
 
+class RubyMethodCache (gdb.Command):
+  def __init__ (self):
+    super (RubyMethodCache, self).__init__ ("ruby methodcache", gdb.COMMAND_NONE)
+
+  def invoke (self, arg, from_tty):
+    cache = gdb.eval('cache')
+    size = 0x800
+    empty = 0
+
+    for i in xrange(size):
+      entry = cache[i]
+      if entry['mid'] != 0:
+        klass = gdb.eval('rb_class2name(%d)' % entry['klass'])
+        method = gdb.eval('rb_id2name(%d)' % entry['mid'])
+        print " %s#%s" % (klass and klass.string() or '(unknown)',  method and method.string() or '(unknown)')
+      else:
+        empty += 1
+
+    print
+    print "%d empty slots (%.2f%%)" % (empty, empty*100.0/size)
+    print
+
 Ruby()
 RubyThreads()
 RubyTrace()
 RubyObjects()
+RubyMethodCache()
 
 macros = """
   macro define R_CAST(st)   (struct st*)
