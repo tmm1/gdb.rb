@@ -25,6 +25,7 @@ class RubyThreads (gdb.Command):
         return ['list']
 
   def invoke (self, arg, from_tty):
+    self.dont_repeat()
     if re.match('trace', arg):
       self.trace()
     else:
@@ -220,6 +221,7 @@ class RubyObjects (gdb.Command):
     super (RubyObjects, self).__init__ ("ruby objects", gdb.COMMAND_NONE)
 
   def invoke (self, arg, from_tty):
+    self.dont_repeat()
     if arg == 'classes':
       self.print_classes()
     elif arg == 'nodes':
@@ -329,6 +331,7 @@ class RubyMethodCache (gdb.Command):
     super (RubyMethodCache, self).__init__ ("ruby methodcache", gdb.COMMAND_NONE)
 
   def invoke (self, arg, from_tty):
+    self.dont_repeat()
     cache = gdb.eval('cache')
     size = 0x800
     empty = 0
