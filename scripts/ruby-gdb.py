@@ -228,19 +228,27 @@ class RubyObjects (gdb.Command):
       self.print_nodes()
     elif arg == 'strings':
       self.print_strings()
+    elif arg == 'hashes':
+      self.print_hashes()
+    elif arg == 'arrays':
+      self.print_arrays()
     else:
       self.print_stats()
 
   def complete (self, text, word):
     if text == word:
       if word == '':
-        return ['classes', 'strings', 'nodes']
+        return ['classes', 'strings', 'nodes', 'hashes', 'arrays']
       elif word[0] == 'c':
         return ['classes']
       elif word[0] == 'n':
         return ['nodes']
       elif word[0] == 's':
         return ['strings']
+      elif word[0] == 'h':
+        return ['hashes']
+      elif word[0] == 'a':
+        return ['arrays']
 
   def print_nodes (self):
     nodes = ZeroDict()
@@ -280,6 +288,53 @@ class RubyObjects (gdb.Command):
     print
     print "% 9d" % len(strings), "unique strings"
     print "% 9d" % bytes, "bytes"
+    print
+
+  def print_hashes (self):
+    sample = dict()
+    hash_sizes = ZeroDict()
+    num_elems = 0
+
+    for (obj, type) in self.live_objects():
+      if type == 0xb:
+        h = obj['as']['hash']
+        tbl = h['tbl']
+        l = int(tbl['num_entries'])
+
+        num_elems += l
+        hash_sizes[l] += 1
+        sample[l] = h
+
+    print " elements instances"
+    for (l, num) in sorted(hash_sizes.items()):
+      print "%9d" % l, num
+
+    print
+    print "% 9d" % sum(hash_sizes.values()), "hashes"
+    print "% 9d" % num_elems, "member elements"
+    print
+
+  def print_arrays (self):
+    sample = dict()
+    array_sizes = ZeroDict()
+    num_elems = 0
+
+    for (obj, type) in self.live_objects():
+      if type == 0x9:
+        a = obj['as']['array']
+        l = int(a['len'])
+
+        num_elems += l
+        array_sizes[l] += 1
+        sample[l] = a
+
+    print " elements instances"
+    for (l, num) in sorted(array_sizes.items()):
+      print "%9d" % l, num
+
+    print
+    print "% 9d" % sum(array_sizes.values()), "arrays"
+    print "% 9d" % num_elems, "member elements"
     print
 
   def print_stats (self):
