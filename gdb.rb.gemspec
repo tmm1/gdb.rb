@@ -26,6 +26,7 @@ spec = Gem::Specification.new do |s|
     "patches/gdb-eval.patch",
     "patches/gdb-breakpoints.patch",
     "patches/gdb-leak.patch",
+    "patches/gdb-strings.patch",
     "scripts/ruby-gdb.py",
     "gdb.rb.gemspec"
   ]

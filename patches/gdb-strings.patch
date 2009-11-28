@@ -1,0 +1,14 @@
+diff --git a/python/py-utils.c b/python/py-utils.c
+index 49c0437..9cca10b 100644
+--- a/python/py-utils.c
++++ b/python/py-utils.c
+@@ -189,6 +189,9 @@ python_string_to_host_string (PyObject *obj)
+   PyObject *str;
+   char *result;
+ 
++  if (PyString_Check (obj))
++    return xstrdup (PyString_AsString (obj));
++
+   str = python_string_to_unicode (obj);
+   if (str == NULL)
+     return NULL;

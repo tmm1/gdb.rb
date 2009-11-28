@@ -56,6 +56,7 @@ Dir.chdir('src') do
       gdb-eval
       gdb-breakpoints
       gdb-leak
+      gdb-strings
     ].each do |patch|
       sys("patch -p1 < ../../../../patches/#{patch}.patch")
       sys("git commit -am '#{patch}'") if ENV['DEV']
