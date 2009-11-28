@@ -7,6 +7,11 @@ class ZeroDict(dict):
     if i not in self: self[i] = 0
     return dict.__getitem__(self, i)
 
+class ListDict(dict):
+  def __getitem__(self, i):
+    if i not in self: self[i] = []
+    return dict.__getitem__(self, i)
+
 class Ruby (gdb.Command):
   def __init__ (self):
     super (Ruby, self).__init__ ("ruby", gdb.COMMAND_NONE, gdb.COMPLETE_COMMAND, True)
@@ -291,7 +296,7 @@ class RubyObjects (gdb.Command):
     print
 
   def print_hashes (self):
-    sample = dict()
+    sample = ListDict()
     hash_sizes = ZeroDict()
     num_elems = 0
 
@@ -303,11 +308,11 @@ class RubyObjects (gdb.Command):
 
         num_elems += l
         hash_sizes[l] += 1
-        sample[l] = h
+        if len(sample[l]) < 5: sample[l].append(h.address)
 
     print " elements instances"
     for (l, num) in sorted(hash_sizes.items()):
-      print "%9d" % l, num
+      print "%9d" % l, num, "(", ', '.join([ str(i) for i in sample[l] ]), ")"
 
     print
     print "% 9d" % sum(hash_sizes.values()), "hashes"
@@ -315,7 +320,7 @@ class RubyObjects (gdb.Command):
     print
 
   def print_arrays (self):
-    sample = dict()
+    sample = ListDict()
     array_sizes = ZeroDict()
     num_elems = 0
 
@@ -326,11 +331,11 @@ class RubyObjects (gdb.Command):
 
         num_elems += l
         array_sizes[l] += 1
-        sample[l] = a
+        if len(sample[l]) < 5: sample[l].append(a.address)
 
     print " elements instances"
     for (l, num) in sorted(array_sizes.items()):
-      print "%9d" % l, num
+      print "%9d" % l, num, "(", ', '.join([ str(i) for i in sample[l] ]), ")"
 
     print
     print "% 9d" % sum(array_sizes.values()), "arrays"
