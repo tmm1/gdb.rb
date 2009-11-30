@@ -409,11 +409,20 @@ class RubyMethodCache (gdb.Command):
     print "%d empty slots (%.2f%%)" % (empty, empty*100.0/size)
     print
 
+class RubyEval (gdb.Command):
+  def __init__ (self):
+    super (RubyEval, self).__init__ ("ruby eval", gdb.COMMAND_NONE)
+
+  def invoke (self, arg, from_tty):
+    self.dont_repeat()
+    print gdb.eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
+
 Ruby()
 RubyThreads()
 RubyTrace()
 RubyObjects()
 RubyMethodCache()
+RubyEval()
 
 macros = """
   macro define R_CAST(st)   (struct st*)
