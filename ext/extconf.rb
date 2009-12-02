@@ -19,10 +19,10 @@ if RUBY_VERSION >= "1.9"
   exit(1)
 end
 
-if `uname -a 2>&1` !~ /x86_64/
+if RUBY_PLATFORM !~ /(i686|x86_64)-linux/
   STDERR.puts "\n\n"
   STDERR.puts "***************************************************************************************"
-  STDERR.puts "********************* Only x86_64 linux is supported (for now) =( *********************"
+  STDERR.puts "*********************** Only x86 linux is supported (for now) =( **********************"
   STDERR.puts "***************************************************************************************"
   exit(1)
 end
