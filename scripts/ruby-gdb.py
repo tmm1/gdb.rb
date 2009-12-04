@@ -285,7 +285,10 @@ class RubyObjects (gdb.Command):
         ptr = s['ptr']
         if ptr:
           bytes += s['len']
-          strings[ ptr.string() ] += 1
+          try:
+            strings[ ptr.string() ] += 1
+          except:
+            None
 
     for (s, num) in sorted(strings.items(), key=lambda(k,v):(v,k)):
       print "% 9d" % num, repr(s)
