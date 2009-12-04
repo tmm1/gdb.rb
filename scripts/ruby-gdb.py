@@ -409,6 +409,23 @@ class RubyMethodCache (gdb.Command):
     print "%d empty slots (%.2f%%)" % (empty, empty*100.0/size)
     print
 
+class RubyPrint (gdb.Command):
+  def __init__ (self):
+    super (RubyPrint, self).__init__ ("ruby print", gdb.COMMAND_NONE)
+
+  def invoke (self, arg, from_tty):
+    self.dont_repeat()
+
+    type = int(gdb.eval("((struct RBasic *)(%d))->flags & 0x3f" % int(arg,0)))
+    rtype = RubyObjects.TYPES.get(type, 'unknown')
+
+    if rtype == 'array':
+      print rtype
+    elif rtype == 'hash':
+      print rtype
+    else:
+      print 'unknown'
+
 class RubyEval (gdb.Command):
   def __init__ (self):
     super (RubyEval, self).__init__ ("ruby eval", gdb.COMMAND_NONE)
@@ -422,6 +439,7 @@ RubyThreads()
 RubyTrace()
 RubyObjects()
 RubyMethodCache()
+RubyPrint()
 RubyEval()
 
 macros = """
