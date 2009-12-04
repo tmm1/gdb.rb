@@ -1,17 +1,27 @@
 #!/usr/bin/env ruby
 require 'rbconfig'
 
-if ARGV.size == 1 and ARGV[0] =~ /^\d+$/
-  ARGV.unshift "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
-elsif ARGV.size == 2 and File.exist?(ARGV[0]) and ARGV[1] =~ /^\d+$/
+if ARGV.size == 1 && ARGV[0] =~ /^\d+$/
+  pid = ARGV[0]
+elsif ARGV.size == 1 && ARGV[0] == 'none'
+  pid = nil
 else
   puts "Usage:"
   puts
   puts "  gdb.rb <pid>"
-  puts "  gdb.rb <path to ruby> <pid>"
   puts
   exit(1)
 end
 
-cmd = "#{File.dirname(__FILE__)}/../ext/dst/bin/gdb -ex 'py execfile(\"#{File.dirname(__FILE__)}/../scripts/ruby-gdb.py\")' #{ARGV.join(" ")}"
-exec(cmd)
+dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+
+args = []
+args << "#{dir}/ext/dst/bin/gdb"
+args << "-ex 'py execfile(\"#{dir}/scripts/ruby-gdb.py\")'"
+if pid
+  args << "-ex 'attach #{pid}'"
+else
+  args << "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
+end
+
+exec(args.join(' '))
