@@ -1,7 +1,7 @@
 spec = Gem::Specification.new do |s|
   s.name = 'gdb.rb'
-  s.version = '0.1.1'
-  s.date = '2009-11-06'
+  s.version = '0.1.2'
+  s.date = '2009-12-04'
   s.rubyforge_project = 'gdb-rb'
   s.summary = 'gdb hooks for MRI'
   s.description = 'A set of gdb7 extensions for the MRI interpreter'
