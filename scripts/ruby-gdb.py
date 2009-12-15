@@ -269,8 +269,22 @@ class RubyObjects (gdb.Command):
     classes = ZeroDict()
 
     for (obj, type) in self.live_objects():
-      if type == 0x2:
-        classes[ int(obj['as']['basic']['klass']) ] += 1
+      if type == 0x0:
+        pass # none
+      elif type == 0x3b:
+        pass # blktag
+      elif type == 0x3c:
+        pass # undef
+      elif type == 0x3d:
+        pass # varmap
+      elif type == 0x3e:
+        pass # scope
+      elif type == 0x3f:
+        pass # node
+      else:
+        klass = obj['as']['basic']['klass']
+        if klass:
+          classes[ int(klass) ] += 1
 
     for (klass, num) in sorted(classes.items(), key=lambda(k,v):(v,k)):
       print "% 8d %s" % (num, gdb.eval('rb_class2name(%d)' % klass).string())
