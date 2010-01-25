@@ -449,6 +449,7 @@ class RubyEval (gdb.Command):
 
   def invoke (self, arg, from_tty):
     self.dont_repeat()
+    arg = arg.replace('\\', '\\\\').replace('"', '\\\"')
     print gdb.eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
 
 Ruby()
