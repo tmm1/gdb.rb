@@ -1,10 +1,10 @@
 spec = Gem::Specification.new do |s|
   s.name = 'gdb.rb'
-  s.version = '0.1.3'
-  s.date = '2009-12-22'
+  s.version = '0.1.5'
+  s.date = '2010-11-04'
   s.rubyforge_project = 'gdb-rb'
-  s.summary = 'gdb hooks for MRI'
-  s.description = 'A set of gdb7 extensions for the MRI interpreter'
+  s.summary = 'gdb hooks for MRI and REE'
+  s.description = 'A set of gdb7 extensions for the MRI/REE 1.8.x interpreter'
 
   s.homepage = "http://github.com/tmm1/gdb.rb"
 
@@ -16,18 +16,5 @@ spec = Gem::Specification.new do |s|
   s.bindir = 'bin'
   s.executables << 'gdb.rb'
 
-  # ruby -rpp -e' pp `git ls-files`.split("\n").sort '
-  s.files = %w[
-    README
-    bin/gdb.rb
-    ext/Makefile
-    ext/extconf.rb
-    ext/src/gdb-7.0.tar.bz2
-    gdb.rb.gemspec
-    patches/gdb-breakpoints.patch
-    patches/gdb-eval.patch
-    patches/gdb-leak.patch
-    patches/gdb-strings.patch
-    scripts/ruby-gdb.py
-  ]
+  s.files = `git ls-files`.split("\n").sort
 end
