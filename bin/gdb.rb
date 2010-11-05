@@ -13,15 +13,16 @@ else
   exit(1)
 end
 
-dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
+dir = File.expand_path('../../', __FILE__)
+binary = "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
 
 args = []
 args << "#{dir}/ext/dst/bin/gdb"
-args << "-ex 'py execfile(\"#{dir}/scripts/ruby-gdb.py\")'"
 if pid
   args << "-ex 'attach #{pid}'"
 else
-  args << "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
+  args << binary
 end
+args << %{-ex 'py execfile("#{dir}/scripts/ruby-gdb.py")'}
 
 exec(args.join(' '))

@@ -1,6 +1,7 @@
 import re
 import gdb
 import time
+import os
 
 class ZeroDict(dict):
   def __getitem__(self, i):
@@ -452,6 +453,10 @@ class RubyEval (gdb.Command):
     arg = arg.replace('\\', '\\\\').replace('"', '\\\"')
     print gdb.parse_and_eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
 
+
+##
+# Create GDB commands
+
 Ruby()
 RubyThreads()
 RubyTrace()
@@ -460,10 +465,25 @@ RubyMethodCache()
 RubyPrint()
 RubyEval()
 
+##
+# Detect MRI vs REE
+
+ruby = gdb.execute("info files", to_string=True).split("\n")[0]
+ruby = re.search('"(.+)"\.?$', ruby)
+ruby = ruby.group(1)
+ruby = os.popen("%s -v" % ruby).read()
+
+if re.search('Enterprise', ruby):
+	gdb.execute("macro define FL_USHIFT    12")
+else:
+	gdb.execute("macro define FL_USHIFT    11")
+
+##
+# Define common macros
+
 macros = """
   macro define R_CAST(st)   (struct st*)
   macro define RNODE(obj)  (R_CAST(RNode)(obj))
-  macro define FL_USHIFT    12
   macro define CHAR_BIT 8
   macro define NODE_LSHIFT (FL_USHIFT+8)
   macro define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
@@ -486,6 +506,9 @@ macros = """
 for m in macros:
   if len(m.strip()) > 0:
     gdb.execute(m)
+
+##
+# Define types
 
 types = """
   T_NONE   0x00
@@ -525,6 +548,9 @@ for t in types:
     name, val = t.split()
     gdb.execute("macro define %s %s" % (name, val))
     RubyObjects.TYPES[int(val,16)] = name[2:].lower()
+
+##
+# Set GDB options
 
 settings = """
   set height 0
