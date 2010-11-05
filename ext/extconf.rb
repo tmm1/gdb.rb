@@ -36,7 +36,7 @@ unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or
   exit(1)
 end
 
-gdb = File.basename('gdb-7.0.tar.bz2')
+gdb = File.basename('gdb-7.2.tar.bz2')
 dir = File.basename(gdb, '.tar.bz2')
 
 puts "(I'm about to compile gdb7.. this will definitely take a while)"
@@ -53,8 +53,6 @@ Dir.chdir('src') do
     end
 
     %w[
-      gdb-eval
-      gdb-breakpoints
       gdb-leak
       gdb-strings
     ].each do |patch|

@@ -40,7 +40,7 @@ class RubyThreads (gdb.Command):
   def trace (self):
     self.type = 'list'
     self.curr = None
-    self.main = gdb.eval('rb_main_thread')
+    self.main = gdb.parse_and_eval('rb_main_thread')
 
     self.unwind = gdb.parameter('unwindonsignal')
     gdb.execute('set unwindonsignal on')
@@ -53,7 +53,7 @@ class RubyThreads (gdb.Command):
       prev = None
       while True:
         gdb.execute('continue')
-        curr = gdb.eval('rb_curr_thread')
+        curr = gdb.parse_and_eval('rb_curr_thread')
         if curr == prev: break
         self.print_thread(curr)
         prev = curr
@@ -64,12 +64,12 @@ class RubyThreads (gdb.Command):
     gdb.execute('set unwindonsignal %s' % (self.unwind and 'on' or 'off'))
 
   def show (self):
-    self.main = gdb.eval('rb_main_thread')
-    self.curr = gdb.eval('rb_curr_thread')
+    self.main = gdb.parse_and_eval('rb_main_thread')
+    self.curr = gdb.parse_and_eval('rb_curr_thread')
     self.now = time.time()
 
     try:
-      gdb.eval('rb_thread_start_2')
+      gdb.parse_and_eval('rb_thread_start_2')
     except RuntimeError:
       self.is_heap_stack = False
     else:
@@ -100,8 +100,8 @@ class RubyThreads (gdb.Command):
     if self.type == 'list': return
 
     if th == self.curr:
-      frame = gdb.eval('ruby_frame')
-      node = gdb.eval('ruby_current_node')
+      frame = gdb.parse_and_eval('ruby_frame')
+      node = gdb.parse_and_eval('ruby_current_node')
     else:
       frame = th['frame']
       node = frame['node']
@@ -127,20 +127,20 @@ class RubyThreads (gdb.Command):
       stk_pos = th['stk_pos']
       stk_ptr = th['stk_ptr']
       stk_len = th['stk_len']
-      addr = gdb.eval('(VALUE*)%s' % frame)
+      addr = gdb.parse_and_eval('(VALUE*)%s' % frame)
 
       if not self.is_heap_stack and th != self.curr and stk_pos < addr and addr < (stk_pos+stk_len):
         frame = (addr-stk_pos) + stk_ptr
-        frame = gdb.eval('(struct FRAME *)%s' % frame)
+        frame = gdb.parse_and_eval('(struct FRAME *)%s' % frame)
         node = frame['node']
 
       file = node['nd_file'].string()
-      line = gdb.eval('nd_line(%s)' % node)
-      type = gdb.eval('(enum node_type) nd_type(%s)' % node)
+      line = gdb.parse_and_eval('nd_line(%s)' % node)
+      type = gdb.parse_and_eval('(enum node_type) nd_type(%s)' % node)
 
       if frame['last_func']:
         try:
-          method = gdb.eval('rb_id2name(%s)' % frame['last_func']).string()
+          method = gdb.parse_and_eval('rb_id2name(%s)' % frame['last_func']).string()
         except:
           method = '(unknown)'
       else:
@@ -171,7 +171,7 @@ class RubyTrace (gdb.Command):
       gdb.execute(c)
 
     gdb.breakpoints()[-1].silent = True
-    self.func = gdb.eval('$func')
+    self.func = gdb.parse_and_eval('$func')
 
     self.unwind = gdb.parameter('unwindonsignal')
     gdb.execute('set unwindonsignal on')
@@ -205,10 +205,10 @@ class RubyTrace (gdb.Command):
         if frame.pc() != self.func:
           raise KeyboardInterrupt
 
-        node = gdb.eval('(NODE*) $rsi')
+        node = gdb.parse_and_eval('(NODE*) $rsi')
         file = node['nd_file'].string()
-        line = gdb.eval('nd_line(%s)' % node)
-        method = gdb.eval('rb_id2name($rcx)')
+        line = gdb.parse_and_eval('nd_line(%s)' % node)
+        method = gdb.parse_and_eval('rb_id2name($rcx)')
         method = method > 0 and method.string() or '(unknown)'
 
         print "%s in %s:%d" % (method,file,line)
@@ -263,7 +263,7 @@ class RubyObjects (gdb.Command):
         nodes[ (int(obj['as']['node']['flags']) >> 12) & 0xff ] += 1
 
     for (node, num) in sorted(nodes.items(), key=lambda(k,v):(v,k)):
-      print "% 8d %s" % (num, gdb.eval('(enum node_type) (%d)' % node))
+      print "% 8d %s" % (num, gdb.parse_and_eval('(enum node_type) (%d)' % node))
 
   def print_classes (self):
     classes = ZeroDict()
@@ -287,7 +287,7 @@ class RubyObjects (gdb.Command):
           classes[ int(klass) ] += 1
 
     for (klass, num) in sorted(classes.items(), key=lambda(k,v):(v,k)):
-      print "% 8d %s" % (num, gdb.eval('rb_class2name(%d)' % klass).string())
+      print "% 8d %s" % (num, gdb.parse_and_eval('rb_class2name(%d)' % klass).string())
 
   def print_strings (self):
     strings = ZeroDict()
@@ -385,11 +385,11 @@ class RubyObjects (gdb.Command):
     print
 
   def all_objects (self):
-    self.heaps_used = gdb.eval('heaps_used')
+    self.heaps_used = gdb.parse_and_eval('heaps_used')
 
     for i in xrange(self.heaps_used):
-      p = gdb.eval("(RVALUE*) heaps[%i].slot" % i)
-      pend = p + gdb.eval("heaps[%i].limit" % i)
+      p = gdb.parse_and_eval("(RVALUE*) heaps[%i].slot" % i)
+      pend = p + gdb.parse_and_eval("heaps[%i].limit" % i)
 
       while p < pend:
         yield p, p['as']['basic']['flags']
@@ -409,15 +409,15 @@ class RubyMethodCache (gdb.Command):
 
   def invoke (self, arg, from_tty):
     self.dont_repeat()
-    cache = gdb.eval('cache')
+    cache = gdb.parse_and_eval('cache')
     size = 0x800
     empty = 0
 
     for i in xrange(size):
       entry = cache[i]
       if entry['mid'] != 0:
-        klass = gdb.eval('rb_class2name(%d)' % entry['klass'])
-        method = gdb.eval('rb_id2name(%d)' % entry['mid'])
+        klass = gdb.parse_and_eval('rb_class2name(%d)' % entry['klass'])
+        method = gdb.parse_and_eval('rb_id2name(%d)' % entry['mid'])
         print " %s#%s" % (klass and klass.string() or '(unknown)',  method and method.string() or '(unknown)')
       else:
         empty += 1
@@ -433,7 +433,7 @@ class RubyPrint (gdb.Command):
   def invoke (self, arg, from_tty):
     self.dont_repeat()
 
-    type = int(gdb.eval("((struct RBasic *)(%d))->flags & 0x3f" % int(arg,0)))
+    type = int(gdb.parse_and_eval("((struct RBasic *)(%d))->flags & 0x3f" % int(arg,0)))
     rtype = RubyObjects.TYPES.get(type, 'unknown')
 
     if rtype == 'array':
@@ -450,7 +450,7 @@ class RubyEval (gdb.Command):
   def invoke (self, arg, from_tty):
     self.dont_repeat()
     arg = arg.replace('\\', '\\\\').replace('"', '\\\"')
-    print gdb.eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
+    print gdb.parse_and_eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
 
 Ruby()
 RubyThreads()

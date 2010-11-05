@@ -1,8 +1,8 @@
 diff --git a/python/py-value.c b/python/py-value.c
-index 8f8c610..c3a6cbf 100644
+index 4445655..f3c6309 100644
 --- a/python/py-value.c
 +++ b/python/py-value.c
-@@ -139,7 +139,7 @@ valpy_new (PyTypeObject *subtype, PyObject *args, PyObject *keywords)
+@@ -150,7 +150,7 @@ valpy_new (PyTypeObject *subtype, PyObject *args, PyObject *keywords)
      }
  
    value_obj->value = value;
@@ -10,16 +10,8 @@ index 8f8c610..c3a6cbf 100644
 +  release_value_or_incref (value);
    value_obj->address = NULL;
    value_obj->type = NULL;
-   note_value (value_obj);
-@@ -263,6 +263,7 @@ valpy_cast (PyObject *self, PyObject *args)
- {
-   PyObject *type_obj;
-   struct type *type;
-+  PyObject *res_obj = NULL;
-   struct value *res_val = NULL;	  /* Initialize to appease gcc warning.  */
-   volatile struct gdb_exception except;
- 
-@@ -301,8 +302,10 @@ valpy_getitem (PyObject *self, PyObject *key)
+   value_obj->dynamic_type = NULL;
+@@ -445,8 +445,10 @@ valpy_getitem (PyObject *self, PyObject *key)
  {
    value_object *self_value = (value_object *) self;
    char *field = NULL;
@@ -30,23 +22,24 @@ index 8f8c610..c3a6cbf 100644
  
    if (gdbpy_is_string (key))
      {  
-@@ -340,9 +343,13 @@ valpy_getitem (PyObject *self, PyObject *key)
+@@ -486,9 +488,15 @@ valpy_getitem (PyObject *self, PyObject *key)
      }
  
    xfree (field);
--  GDB_PY_HANDLE_EXCEPTION (except);
-+  GDB_PY_HANDLE_EXCEPTION_AND_CLEANUP (except, mark);
-+
-+  if (res_val)
-+    res_obj = value_to_value_object (res_val);
++  if (except.reason < 0)
++    value_free_to_mark (mark);
+   GDB_PY_HANDLE_EXCEPTION (except);
  
 -  return res_val ? value_to_value_object (res_val) : NULL;
++  if (res_val)
++    res_obj = value_to_value_object (res_val);
++
 +  value_free_to_mark (mark);
 +  return res_obj;
  }
  
  static int
-@@ -423,8 +430,10 @@ enum valpy_opcode
+@@ -625,8 +633,10 @@ enum valpy_opcode
  static PyObject *
  valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
  {
@@ -57,23 +50,25 @@ index 8f8c610..c3a6cbf 100644
  
    TRY_CATCH (except, RETURN_MASK_ALL)
      {
-@@ -515,9 +524,13 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
+@@ -717,9 +727,16 @@ valpy_binop (enum valpy_opcode opcode, PyObject *self, PyObject *other)
  	  break;
  	}
      }
--  GDB_PY_HANDLE_EXCEPTION (except);
-+  GDB_PY_HANDLE_EXCEPTION_AND_CLEANUP (except, mark);
 +
-+  if (res_val)
-+    res_obj = value_to_value_object (res_val);
++  if (except.reason < 0)
++    value_free_to_mark (mark);
+   GDB_PY_HANDLE_EXCEPTION (except);
  
 -  return res_val ? value_to_value_object (res_val) : NULL;
++  if (res_val)
++    res_obj = value_to_value_object (res_val);
++
 +  value_free_to_mark (mark);
 +  return res_obj;
  }
  
  static PyObject *
-@@ -680,6 +693,7 @@ valpy_richcompare (PyObject *self, PyObject *other, int op)
+@@ -881,6 +898,7 @@ valpy_richcompare (PyObject *self, PyObject *other, int op)
    int result = 0;
    struct value *value_other;
    volatile struct gdb_exception except;
@@ -81,7 +76,7 @@ index 8f8c610..c3a6cbf 100644
  
    if (other == Py_None)
      /* Comparing with None is special.  From what I can tell, in Python
-@@ -738,6 +752,7 @@ valpy_richcompare (PyObject *self, PyObject *other, int op)
+@@ -939,6 +957,7 @@ valpy_richcompare (PyObject *self, PyObject *other, int op)
  	  break;
        }
      }
@@ -89,7 +84,7 @@ index 8f8c610..c3a6cbf 100644
    GDB_PY_HANDLE_EXCEPTION (except);
  
    /* In this case, the Python exception has already been set.  */
-@@ -858,7 +873,7 @@ value_to_value_object (struct value *val)
+@@ -1062,7 +1081,7 @@ value_to_value_object (struct value *val)
    if (val_obj != NULL)
      {
        val_obj->value = val;
@@ -97,37 +92,18 @@ index 8f8c610..c3a6cbf 100644
 +      release_value_or_incref (val);
        val_obj->address = NULL;
        val_obj->type = NULL;
-       note_value (val_obj);
-diff --git a/python/python-internal.h b/python/python-internal.h
-index fa4a62b..bc9c8c0 100644
---- a/python/python-internal.h
-+++ b/python/python-internal.h
-@@ -103,11 +103,17 @@ extern const struct language_defn *python_language;
- /* Use this after a TRY_EXCEPT to throw the appropriate Python
-    exception.  */
- #define GDB_PY_HANDLE_EXCEPTION(Exception)				\
-+    GDB_PY_HANDLE_EXCEPTION_AND_CLEANUP(Exception, NULL)
-+
-+#define GDB_PY_HANDLE_EXCEPTION_AND_CLEANUP(Exception, mark)				\
-     do {								\
--      if (Exception.reason < 0)						\
-+      if (Exception.reason < 0) {					\
-+        if (mark)						\
-+          value_free_to_mark (mark);						\
- 	return PyErr_Format (Exception.reason == RETURN_QUIT		\
- 			     ? PyExc_KeyboardInterrupt : PyExc_RuntimeError, \
- 			     "%s", Exception.message);			\
-+      }						\
-     } while (0)
- 
- 
+       val_obj->dynamic_type = NULL;
 diff --git a/value.c b/value.c
-index 589e03b..59a0196 100644
+index 381318b..805dcf0 100644
 --- a/value.c
 +++ b/value.c
-@@ -675,7 +675,7 @@ free_all_values (void)
+@@ -737,9 +737,10 @@ free_value_chain (struct value *v)
+ }
+ 
  /* Remove VAL from the chain all_values
-    so it will not be freed automatically.  */
+-   so it will not be freed automatically.  */
++   so it will not be freed automatically.
++   Result of 0 indicates the value was found and released. */
  
 -void
 +int
@@ -139,7 +115,7 @@ index 589e03b..59a0196 100644
      {
        all_values = val->next;
 -      return;
-+      return 1;
++      return 0;
      }
  
    for (v = all_values; v; v = v->next)
@@ -148,11 +124,11 @@ index 589e03b..59a0196 100644
  	{
  	  v->next = val->next;
 -	  break;
-+	  return 1;
++	  return 0;
  	}
      }
 +
-+  return 0;
++  return -1;
 +}
 +
 +/* Release VAL or increment its reference count if
@@ -161,18 +137,22 @@ index 589e03b..59a0196 100644
 +void
 +release_value_or_incref (struct value *val)
 +{
-+  if (release_value (val) == 0)
++  if (release_value (val) != 0)
 +    value_incref (val);
  }
  
  /* Release all values up to mark  */
++
+ struct value *
+ value_release_to_mark (struct value *mark)
+ {
 diff --git a/value.h b/value.h
-index 51e6960..4760c4a 100644
+index 543290a..e7e00d2 100644
 --- a/value.h
 +++ b/value.h
-@@ -594,7 +594,9 @@ extern void value_free (struct value *val);
+@@ -641,7 +641,9 @@ extern void free_all_values (void);
  
- extern void free_all_values (void);
+ extern void free_value_chain (struct value *v);
  
 -extern void release_value (struct value *val);
 +extern int release_value (struct value *val);
