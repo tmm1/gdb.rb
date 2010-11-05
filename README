@@ -17,6 +17,12 @@ gdb7 hooks for MRI
   Attaching to program: /usr/bin/ruby, process 13074
   0x00007fa8b9cb3c93 in select () from /lib/libc.so.6
 
+  (gdb) ruby eval 1+2
+  2
+
+  (gdb) ruby eval Thread.list.count
+  17
+
   (gdb) ruby threads list
   0x1589000 main      thread  THREAD_STOPPED   WAIT_JOIN(0x19ef400)           4417 bytes
   0x19ef400           thread  THREAD_STOPPED   WAIT_TIME(57.10)               6267 bytes
@@ -34,7 +40,7 @@ gdb7 hooks for MRI
   0x19dc800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
   0x19dcc00           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
   0x2266800           thread  THREAD_STOPPED   WAIT_NONE                     14237 bytes
-  0x1d63000      curr thread  THREAD_RUNNABLE  WAIT_NONE                 
+  0x1d63000      curr thread  THREAD_RUNNABLE  WAIT_NONE
 
   (gdb) ruby threads
   0x1589000 main      thread  THREAD_STOPPED   WAIT_JOIN(0x19ef400)           4417 bytes
