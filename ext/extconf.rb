@@ -28,6 +28,14 @@ unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or
   exit(1)
 end
 
+unless have_header('ncurses.h') or have_header('ncurses/ncurses.h')
+  STDERR.puts "\n\n"
+  STDERR.puts "***************************************************************************************"
+  STDERR.puts "**************** ncurses required (apt-get install libncurses5-dev) =( ****************"
+  STDERR.puts "***************************************************************************************"
+  exit(1)
+end
+
 gdb = File.basename('gdb-7.2.tar.bz2')
 dir = File.basename(gdb, '.tar.bz2')
 
