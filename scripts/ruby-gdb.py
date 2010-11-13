@@ -232,11 +232,11 @@ class RubyObjects (gdb.Command):
       self.print_classes()
     elif arg == 'nodes':
       self.print_nodes()
-    elif arg == 'strings':
+    elif Ruby.is_18 and arg == 'strings':
       self.print_strings()
-    elif arg == 'hashes':
+    elif Ruby.is_18 and arg == 'hashes':
       self.print_hashes()
-    elif arg == 'arrays':
+    elif Ruby.is_18 and arg == 'arrays':
       self.print_arrays()
     else:
       self.print_stats()
@@ -244,24 +244,33 @@ class RubyObjects (gdb.Command):
   def complete (self, text, word):
     if text == word:
       if word == '':
-        return ['classes', 'strings', 'nodes', 'hashes', 'arrays']
+        if Ruby.is_18:
+          return ['classes', 'nodes', 'strings', 'hashes', 'arrays']
+        else:
+          return ['classes', 'nodes']
       elif word[0] == 'c':
         return ['classes']
       elif word[0] == 'n':
         return ['nodes']
-      elif word[0] == 's':
+      elif Ruby.is_18 and word[0] == 's':
         return ['strings']
-      elif word[0] == 'h':
+      elif Ruby.is_18 and word[0] == 'h':
         return ['hashes']
-      elif word[0] == 'a':
+      elif Ruby.is_18 and word[0] == 'a':
         return ['arrays']
 
   def print_nodes (self):
     nodes = ZeroDict()
 
     for (obj, type) in self.live_objects():
-      if type == 0x3f:
-        nodes[ (int(obj['as']['node']['flags']) >> 12) & 0xff ] += 1
+      if type == RubyObjects.ITYPES['node']:
+        if Ruby.is_18:
+          # for performance only, the 1.9 path below will work as well
+          # but requires a call to gdb.parse_and_eval
+          type = (int(obj['as']['node']['flags']) >> 12) & 0xff
+        else:
+          type = int(gdb.parse_and_eval('nd_type(%s)' % obj))
+        nodes[ type ] += 1
 
     for (node, num) in sorted(nodes.items(), key=lambda(k,v):(v,k)):
       print "% 8d %s" % (num, gdb.parse_and_eval('(enum node_type) (%d)' % node))
@@ -295,7 +304,7 @@ class RubyObjects (gdb.Command):
     bytes = 0
 
     for (obj, type) in self.live_objects():
-      if type == 0x7:
+      if type == RubyObjects.ITYPES['string']:
         s = obj['as']['string']
         ptr = s['ptr']
         if ptr:
@@ -367,7 +376,7 @@ class RubyObjects (gdb.Command):
     for (obj, flags) in self.all_objects():
       if flags:
         live += 1
-        types[ int(flags & 0x3f) ] += 1
+        types[ int(flags & RubyObjects.T_MASK) ] += 1
       else:
         free += 1
 
@@ -399,7 +408,7 @@ class RubyObjects (gdb.Command):
   def live_objects (self):
     for (obj, flags) in self.all_objects():
       if flags:
-        yield obj, int(flags & 0x3f)
+        yield obj, int(flags & RubyObjects.T_MASK)
 
   def obj_type (self, type):
     return RubyObjects.TYPES.get(type, 'unknown')
@@ -451,103 +460,168 @@ class RubyEval (gdb.Command):
   def invoke (self, arg, from_tty):
     self.dont_repeat()
     arg = arg.replace('\\', '\\\\').replace('"', '\\\"')
-    print gdb.parse_and_eval("((struct RString*)rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))->ptr" % arg).string()
+    print gdb.parse_and_eval("RSTRING_PTR(rb_eval_string_protect(\"begin; (%s).inspect; rescue Exception => e; e.inspect; end\", 0))" % arg).string()
 
 
 ##
-# Create GDB commands
+# Create common GDB commands
 
 Ruby()
-RubyThreads()
-RubyTrace()
-RubyObjects()
-RubyMethodCache()
-RubyPrint()
 RubyEval()
+RubyObjects()
 
 ##
-# Detect MRI vs REE
+# Detect ruby version
 
 ruby = gdb.execute("info files", to_string=True).split("\n")[0]
 ruby = re.search('"(.+)"\.?$', ruby)
 ruby = ruby.group(1)
 ruby = os.popen("%s -v" % ruby).read()
 
-if re.search('Enterprise', ruby):
-	gdb.execute("macro define FL_USHIFT    12")
-else:
-	gdb.execute("macro define FL_USHIFT    11")
-
 ##
-# Define common macros
+# Common macros for 1.8 and 1.9
 
 macros = """
   macro define R_CAST(st)   (struct st*)
+  macro define RBASIC(obj)  (R_CAST(RBasic)(obj))
+  macro define RSTRING(obj) (R_CAST(RString)(obj))
   macro define RNODE(obj)  (R_CAST(RNode)(obj))
-  macro define CHAR_BIT 8
-  macro define NODE_LSHIFT (FL_USHIFT+8)
-  macro define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
-  macro define nd_line(n) ((unsigned int)(((RNODE(n))->flags>>NODE_LSHIFT)&NODE_LMASK))
-  macro define nd_type(n) ((int)(((RNODE(n))->flags>>FL_USHIFT)&0xff))
+"""
 
-  macro define T_MASK   0x3f
-  macro define BUILTIN_TYPE(x) (((struct RBasic*)(x))->flags & T_MASK)
+##
+# Constants
 
-  macro define WAIT_FD (1<<0)
-  macro define WAIT_SELECT (1<<1)
-  macro define WAIT_TIME (1<<2)
-  macro define WAIT_JOIN (1<<3)
-  macro define WAIT_PID (1<<4)
+Ruby.is_18  = False
+Ruby.is_19  = False
+Ruby.is_ree = False
 
-  macro define RUBY_EVENT_CALL     0x08
-  macro define RUBY_EVENT_C_CALL   0x20
-""".split("\n")
+##
+# Version specific macros and commands
 
-for m in macros:
+if re.search('1\.9\.\d', ruby):
+  Ruby.is_19 = True
+  RubyObjects.T_MASK = 0x1f
+
+  ##
+  # Common 1.9 macros
+  macros += """
+    macro define NODE_TYPESHIFT 8
+    macro define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
+    macro define nd_type(n) ((int) (((RNODE(n))->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
+
+    macro define RSTRING_PTR(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ? RSTRING(str)->as.ary : RSTRING(str)->as.heap.ptr)
+    macro define RSTRING_NOEMBED FL_USER1
+    macro define FL_USER1     (((VALUE)1)<<(FL_USHIFT+1))
+    macro define FL_USHIFT    12
+
+    macro define GET_VM() ruby_current_vm
+    macro define rb_objspace (*GET_VM()->objspace)
+    macro define objspace rb_objspace
+
+    macro define heaps     objspace->heap.ptr
+    macro define heaps_length    objspace->heap.length
+    macro define heaps_used    objspace->heap.used
+  """
+
+else:
+  Ruby.is_18 = True
+  RubyObjects.T_MASK = 0x3f
+
+  ##
+  # 1.8 specific ruby commands
+  RubyThreads()
+  RubyTrace()
+  RubyMethodCache()
+  RubyPrint()
+
+  ##
+  # Detect REE vs MRI
+  if re.search('Enterprise', ruby):
+    Ruby.is_ree = True
+    gdb.execute("macro define FL_USHIFT    12")
+  else:
+    gdb.execute("macro define FL_USHIFT    11")
+
+  ##
+  # Common 1.8 macros
+  macros += """
+    macro define RSTRING_PTR(obj) (RSTRING(obj)->ptr)
+    macro define CHAR_BIT 8
+    macro define NODE_LSHIFT (FL_USHIFT+8)
+    macro define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
+    macro define nd_line(n) ((unsigned int)(((RNODE(n))->flags>>NODE_LSHIFT)&NODE_LMASK))
+    macro define nd_type(n) ((int)(((RNODE(n))->flags>>FL_USHIFT)&0xff))
+
+    macro define T_MASK   0x3f
+    macro define BUILTIN_TYPE(x) (((struct RBasic*)(x))->flags & T_MASK)
+
+    macro define WAIT_FD (1<<0)
+    macro define WAIT_SELECT (1<<1)
+    macro define WAIT_TIME (1<<2)
+    macro define WAIT_JOIN (1<<3)
+    macro define WAIT_PID (1<<4)
+
+    macro define RUBY_EVENT_CALL     0x08
+    macro define RUBY_EVENT_C_CALL   0x20
+  """
+
+##
+# Execute macro definitions
+
+for m in macros.split("\n"):
   if len(m.strip()) > 0:
     gdb.execute(m)
 
 ##
 # Define types
 
-types = """
-  T_NONE   0x00
-
-  T_NIL    0x01
-  T_OBJECT 0x02
-  T_CLASS  0x03
-  T_ICLASS 0x04
-  T_MODULE 0x05
-  T_FLOAT  0x06
-  T_STRING 0x07
-  T_REGEXP 0x08
-  T_ARRAY  0x09
-  T_FIXNUM 0x0a
-  T_HASH   0x0b
-  T_STRUCT 0x0c
-  T_BIGNUM 0x0d
-  T_FILE   0x0e
-
-  T_TRUE   0x20
-  T_FALSE  0x21
-  T_DATA   0x22
-  T_MATCH  0x23
-  T_SYMBOL 0x24
-
-  T_BLKTAG 0x3b
-  T_UNDEF  0x3c
-  T_VARMAP 0x3d
-  T_SCOPE  0x3e
-  T_NODE   0x3f
-""".split("\n")
-
 RubyObjects.TYPES = {}
 
-for t in types:
-  if len(t.strip()) > 0:
-    name, val = t.split()
-    gdb.execute("macro define %s %s" % (name, val))
-    RubyObjects.TYPES[int(val,16)] = name[2:].lower()
+if Ruby.is_19:
+  for t in gdb.lookup_type('enum ruby_value_type').fields():
+    name = t.name
+    val  = int(gdb.parse_and_eval(name))
+    gdb.execute("macro define %s %s" % (name[5:], val))
+    RubyObjects.TYPES[val] = name[7:].lower()
+else:
+  types = """
+    T_NONE   0x00
+
+    T_NIL    0x01
+    T_OBJECT 0x02
+    T_CLASS  0x03
+    T_ICLASS 0x04
+    T_MODULE 0x05
+    T_FLOAT  0x06
+    T_STRING 0x07
+    T_REGEXP 0x08
+    T_ARRAY  0x09
+    T_FIXNUM 0x0a
+    T_HASH   0x0b
+    T_STRUCT 0x0c
+    T_BIGNUM 0x0d
+    T_FILE   0x0e
+
+    T_TRUE   0x20
+    T_FALSE  0x21
+    T_DATA   0x22
+    T_MATCH  0x23
+    T_SYMBOL 0x24
+
+    T_BLKTAG 0x3b
+    T_UNDEF  0x3c
+    T_VARMAP 0x3d
+    T_SCOPE  0x3e
+    T_NODE   0x3f
+  """.split("\n")
+
+  for t in types:
+    if len(t.strip()) > 0:
+      name, val = t.split()
+      gdb.execute("macro define %s %s" % (name, val))
+      RubyObjects.TYPES[int(val,16)] = name[2:].lower()
+
+RubyObjects.ITYPES = dict([[v,k] for k,v in RubyObjects.TYPES.items()])
 
 ##
 # Set GDB options
