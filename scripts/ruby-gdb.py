@@ -232,7 +232,7 @@ class RubyObjects (gdb.Command):
       self.print_classes()
     elif arg == 'nodes':
       self.print_nodes()
-    elif Ruby.is_18 and arg == 'strings':
+    elif arg == 'strings':
       self.print_strings()
     elif Ruby.is_18 and arg == 'hashes':
       self.print_hashes()
@@ -247,12 +247,12 @@ class RubyObjects (gdb.Command):
         if Ruby.is_18:
           return ['classes', 'nodes', 'strings', 'hashes', 'arrays']
         else:
-          return ['classes', 'nodes']
+          return ['classes', 'nodes', 'strings']
       elif word[0] == 'c':
         return ['classes']
       elif word[0] == 'n':
         return ['nodes']
-      elif Ruby.is_18 and word[0] == 's':
+      elif word[0] == 's':
         return ['strings']
       elif Ruby.is_18 and word[0] == 'h':
         return ['hashes']
@@ -306,9 +306,9 @@ class RubyObjects (gdb.Command):
     for (obj, type) in self.live_objects():
       if type == RubyObjects.ITYPES['string']:
         s = obj['as']['string']
-        ptr = s['ptr']
-        if ptr:
-          bytes += s['len']
+        ptr = Ruby.is_18 and s['ptr'] or gdb.parse_and_eval('RSTRING_PTR(%s)' % obj)
+        if ptr != None:
+          bytes += (Ruby.is_18 and s['len'] or int(gdb.parse_and_eval('RSTRING_LEN(%s)' % obj)))
           try:
             strings[ ptr.string() ] += 1
           except:
@@ -319,7 +319,7 @@ class RubyObjects (gdb.Command):
 
     print
     print "% 9d" % len(strings), "unique strings"
-    print "% 9d" % bytes, "bytes"
+    print "% 9d" % bytes, "bytes (this double counts shared strings)"
     print
 
   def print_hashes (self):
@@ -486,6 +486,16 @@ macros = """
   #define RBASIC(obj)  (R_CAST(RBasic)(obj))
   #define RSTRING(obj) (R_CAST(RString)(obj))
   #define RNODE(obj)  (R_CAST(RNode)(obj))
+
+  #define FL_USER0     (((VALUE)1)<<(FL_USHIFT+0))
+  #define FL_USER1     (((VALUE)1)<<(FL_USHIFT+1))
+  #define FL_USER2     (((VALUE)1)<<(FL_USHIFT+2))
+  #define FL_USER3     (((VALUE)1)<<(FL_USHIFT+3))
+  #define FL_USER4     (((VALUE)1)<<(FL_USHIFT+4))
+  #define FL_USER5     (((VALUE)1)<<(FL_USHIFT+5))
+  #define FL_USER6     (((VALUE)1)<<(FL_USHIFT+6))
+  #define FL_USER7     (((VALUE)1)<<(FL_USHIFT+7))
+  #define FL_USER8     (((VALUE)1)<<(FL_USHIFT+8))
 """
 
 ##
@@ -509,9 +519,12 @@ if re.search('1\.9\.\d', ruby):
     #define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
     #define nd_type(n) ((int) (((RNODE(n))->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
 
-    #define RSTRING_PTR(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ? RSTRING(str)->as.ary : RSTRING(str)->as.heap.ptr)
     #define RSTRING_NOEMBED FL_USER1
-    #define FL_USER1     (((VALUE)1)<<(FL_USHIFT+1))
+    #define RSTRING_PTR(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ? RSTRING(str)->as.ary : RSTRING(str)->as.heap.ptr)
+    #define RSTRING_EMBED_LEN_MASK (FL_USER2|FL_USER3|FL_USER4|FL_USER5|FL_USER6)
+    #define RSTRING_EMBED_LEN_SHIFT (FL_USHIFT+2)
+    #define RSTRING_LEN(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ?  (long)((RBASIC(str)->flags >> RSTRING_EMBED_LEN_SHIFT) & (RSTRING_EMBED_LEN_MASK >> RSTRING_EMBED_LEN_SHIFT)) : RSTRING(str)->as.heap.len)
+
     #define FL_USHIFT    12
 
     #define GET_VM() ruby_current_vm
