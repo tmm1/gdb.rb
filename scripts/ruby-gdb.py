@@ -482,10 +482,10 @@ ruby = os.popen("%s -v" % ruby).read()
 # Common macros for 1.8 and 1.9
 
 macros = """
-  macro define R_CAST(st)   (struct st*)
-  macro define RBASIC(obj)  (R_CAST(RBasic)(obj))
-  macro define RSTRING(obj) (R_CAST(RString)(obj))
-  macro define RNODE(obj)  (R_CAST(RNode)(obj))
+  #define R_CAST(st)   (struct st*)
+  #define RBASIC(obj)  (R_CAST(RBasic)(obj))
+  #define RSTRING(obj) (R_CAST(RString)(obj))
+  #define RNODE(obj)  (R_CAST(RNode)(obj))
 """
 
 ##
@@ -505,22 +505,22 @@ if re.search('1\.9\.\d', ruby):
   ##
   # Common 1.9 macros
   macros += """
-    macro define NODE_TYPESHIFT 8
-    macro define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
-    macro define nd_type(n) ((int) (((RNODE(n))->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
+    #define NODE_TYPESHIFT 8
+    #define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
+    #define nd_type(n) ((int) (((RNODE(n))->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
 
-    macro define RSTRING_PTR(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ? RSTRING(str)->as.ary : RSTRING(str)->as.heap.ptr)
-    macro define RSTRING_NOEMBED FL_USER1
-    macro define FL_USER1     (((VALUE)1)<<(FL_USHIFT+1))
-    macro define FL_USHIFT    12
+    #define RSTRING_PTR(str) (!(RBASIC(str)->flags & RSTRING_NOEMBED) ? RSTRING(str)->as.ary : RSTRING(str)->as.heap.ptr)
+    #define RSTRING_NOEMBED FL_USER1
+    #define FL_USER1     (((VALUE)1)<<(FL_USHIFT+1))
+    #define FL_USHIFT    12
 
-    macro define GET_VM() ruby_current_vm
-    macro define rb_objspace (*GET_VM()->objspace)
-    macro define objspace rb_objspace
+    #define GET_VM() ruby_current_vm
+    #define rb_objspace (*GET_VM()->objspace)
+    #define objspace rb_objspace
 
-    macro define heaps     objspace->heap.ptr
-    macro define heaps_length    objspace->heap.length
-    macro define heaps_used    objspace->heap.used
+    #define heaps     objspace->heap.ptr
+    #define heaps_length    objspace->heap.length
+    #define heaps_used    objspace->heap.used
   """
 
 else:
@@ -538,31 +538,35 @@ else:
   # Detect REE vs MRI
   if re.search('Enterprise', ruby):
     Ruby.is_ree = True
-    gdb.execute("macro define FL_USHIFT    12")
+    macros += """
+      #define FL_USHIFT   12
+    """
   else:
-    gdb.execute("macro define FL_USHIFT    11")
+    macros += """
+      #define FL_USHIFT   11
+    """
 
   ##
   # Common 1.8 macros
   macros += """
-    macro define RSTRING_PTR(obj) (RSTRING(obj)->ptr)
-    macro define CHAR_BIT 8
-    macro define NODE_LSHIFT (FL_USHIFT+8)
-    macro define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
-    macro define nd_line(n) ((unsigned int)(((RNODE(n))->flags>>NODE_LSHIFT)&NODE_LMASK))
-    macro define nd_type(n) ((int)(((RNODE(n))->flags>>FL_USHIFT)&0xff))
+    #define RSTRING_PTR(obj) (RSTRING(obj)->ptr)
+    #define CHAR_BIT 8
+    #define NODE_LSHIFT (FL_USHIFT+8)
+    #define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
+    #define nd_line(n) ((unsigned int)(((RNODE(n))->flags>>NODE_LSHIFT)&NODE_LMASK))
+    #define nd_type(n) ((int)(((RNODE(n))->flags>>FL_USHIFT)&0xff))
 
-    macro define T_MASK   0x3f
-    macro define BUILTIN_TYPE(x) (((struct RBasic*)(x))->flags & T_MASK)
+    #define T_MASK   0x3f
+    #define BUILTIN_TYPE(x) (((struct RBasic*)(x))->flags & T_MASK)
 
-    macro define WAIT_FD (1<<0)
-    macro define WAIT_SELECT (1<<1)
-    macro define WAIT_TIME (1<<2)
-    macro define WAIT_JOIN (1<<3)
-    macro define WAIT_PID (1<<4)
+    #define WAIT_FD (1<<0)
+    #define WAIT_SELECT (1<<1)
+    #define WAIT_TIME (1<<2)
+    #define WAIT_JOIN (1<<3)
+    #define WAIT_PID (1<<4)
 
-    macro define RUBY_EVENT_CALL     0x08
-    macro define RUBY_EVENT_C_CALL   0x20
+    #define RUBY_EVENT_CALL     0x08
+    #define RUBY_EVENT_C_CALL   0x20
   """
 
 ##
@@ -570,7 +574,7 @@ else:
 
 for m in macros.split("\n"):
   if len(m.strip()) > 0:
-    gdb.execute(m)
+    gdb.execute(m.replace('#', 'macro ', 1))
 
 ##
 # Define types
