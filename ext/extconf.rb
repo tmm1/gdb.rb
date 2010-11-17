@@ -3,7 +3,7 @@ CWD = File.expand_path(File.dirname(__FILE__))
 def sys(cmd)
   puts "  -- #{cmd}"
   unless ret = xsystem(cmd)
-    raise "#{cmd} failed, please report to gdb@tmm1.net with pastie.org link to #{CWD}/mkmf.log and #{CWD}/src/gdb-7.0/config.log"
+    raise "#{cmd} failed, please report to gdb@tmm1.net with pastie.org link to #{CWD}/mkmf.log and #{CWD}/src/gdb-7.2/config.log"
   end
   ret
 end
