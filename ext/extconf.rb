@@ -36,6 +36,14 @@ unless have_header('ncurses.h') or have_header('ncurses/ncurses.h')
   exit(1)
 end
 
+if `which make`.strip.empty?
+  STDERR.puts "\n\n"
+  STDERR.puts "***************************************************************************************"
+  STDERR.puts "*************** make required (apt-get install make build-essential) =( ***************"
+  STDERR.puts "***************************************************************************************"
+  exit(1)
+end
+
 gdb = File.basename('gdb-7.2.tar.bz2')
 dir = File.basename(gdb, '.tar.bz2')
 
