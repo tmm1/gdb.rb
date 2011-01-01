@@ -20,7 +20,7 @@ if RUBY_PLATFORM !~ /(i686|x86_64)-linux/
 end
 
 dir_config('python')
-unless have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or have_header('python2.4/Python.h')
+unless have_header('python2.4/Python.h') or have_header('python2.5/Python.h') or have_header('python2.6/Python.h') or have_header('python2.7/Python.h')
   STDERR.puts "\n\n"
   STDERR.puts "***************************************************************************************"
   STDERR.puts "***************** Python required (apt-get install python2.5-dev) =( ******************"
