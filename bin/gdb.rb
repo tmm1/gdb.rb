@@ -18,6 +18,7 @@ binary = "#{Config::CONFIG['bindir']}/#{Config::CONFIG['ruby_install_name']}"
 
 args = []
 args << "#{dir}/ext/dst/bin/gdb"
+args << "-x #{dir}/scripts/settings.gdb"
 if pid
   args << "-ex 'attach #{pid}'"
 else
