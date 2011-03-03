@@ -3,8 +3,7 @@ gdb7 hooks for MRI
 
 === Requirements
 
-  gdb.rb currently requires x86_64 linux, and a REE 1.8 binary. Support for other MRI builds and
-  platforms is in the works.
+  gdb.rb currently requires x86_64 linux, and MRI/REE 1.8.x or 1.9.2.
 
 === Usage
 
