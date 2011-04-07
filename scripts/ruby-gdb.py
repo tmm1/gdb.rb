@@ -563,6 +563,7 @@ else:
   # Common 1.8 macros
   macros += """
     #define RSTRING_PTR(obj) (RSTRING(obj)->ptr)
+    #define RSTRING_LEN(obj) (RSTRING(obj)->len)
     #define CHAR_BIT 8
     #define NODE_LSHIFT (FL_USHIFT+8)
     #define NODE_LMASK  (((long)1<<(sizeof(NODE*)*CHAR_BIT-NODE_LSHIFT))-1)
